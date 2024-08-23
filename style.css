@@ -9,13 +9,15 @@ body {
     max-width: 600px;
     margin: 0 auto;
     padding: 20px;
+    padding-bottom: 70px;
 }
 
 .page {
     background-color: white;
     border-radius: 10px;
     padding: 20px;
-    margin-bottom: 60px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
 input, button {
@@ -24,6 +26,7 @@ input, button {
     margin-bottom: 10px;
     border: 1px solid #ddd;
     border-radius: 5px;
+    font-size: 16px;
 }
 
 button {
@@ -31,19 +34,31 @@ button {
     color: white;
     border: none;
     cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #006699;
 }
 
 #pdf-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
+    gap: 15px;
 }
 
 .pdf-item {
     border: 1px solid #ddd;
     border-radius: 5px;
-    padding: 10px;
+    padding: 15px;
     text-align: center;
+    background-color: white;
+    transition: transform 0.3s;
+}
+
+.pdf-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
 }
 
 nav {
@@ -62,4 +77,22 @@ nav button {
     background-color: transparent;
     color: #0088cc;
     border: none;
+    font-weight: bold;
+}
+
+.toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #333;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.toast.show {
+    opacity: 1;
 }
