@@ -1,17 +1,261 @@
+html
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Store</title>
+    <link rel="stylesheet" href="styles.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/TelegramMiniApp/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Ton Sample TWA</title>
-    <script type="module" crossorigin src="/TelegramMiniApp/assets/index-f00ef643.js"></script>
-    <link rel="stylesheet" href="/TelegramMiniApp/assets/index-b41033e1.css">
-  </head>
-  <body bgcolor="white">
-    <div id="root"></div>
-    <p>Test 1</p>
-    
-  </body>
+</head>
+<body>
+    <div id="app">
+        <!-- Home/Browse Page -->
+        <div id="home" class="page">
+            <input type="text" id="search" placeholder="Search PDFs...">
+            <div id="categories">
+                <!-- Add category buttons here -->
+            </div>
+            <div id="pdf-grid">
+                <!-- PDF items will be dynamically added here -->
+            </div>
+        </div>
+
+        <!-- PDF Details Page -->
+        <div id="pdf-details" class="page" style="display: none;">
+            <img id="pdf-thumbnail" src="" alt="PDF Thumbnail">
+            <h2 id="pdf-title"></h2>
+            <p id="pdf-author"></p>
+            <p id="pdf-description"></p>
+            <p id="pdf-price"></p>
+            <button id="buy-button">Buy Now</button>
+        </div>
+
+        <!-- Cart/Checkout Page -->
+        <div id="cart" class="page" style="display: none;">
+            <h2>Your Cart</h2>
+            <ul id="cart-items">
+                <!-- Cart items will be dynamically added here -->
+            </ul>
+            <p>Total: <span id="cart-total"></span> TON</p>
+            <button id="checkout-button">Proceed to Payment</button>
+        </div>
+
+        <!-- Payment Page -->
+        <div id="payment" class="page" style="display: none;">
+            <h2>Complete Your Payment</h2>
+            <p>Total: <span id="payment-total"></span> TON</p>
+            <button id="connect-wallet">Connect TON Wallet</button>
+            <button id="confirm-payment" style="display: none;">Confirm Payment</button>
+        </div>
+
+        <!-- User Account Page -->
+        <div id="account" class="page" style="display: none;">
+            <h2>Your Account</h2>
+            <h3>Purchased PDFs</h3>
+            <ul id="purchased-pdfs">
+                <!-- Purchased PDFs will be dynamically added here -->
+            </ul>
+            <h3>Transaction History</h3>
+            <ul id="transaction-history">
+                <!-- Transactions will be dynamically added here -->
+            </ul>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav>
+        <button id="nav-home">Home</button>
+        <button id="nav-cart">Cart</button>
+        <button id="nav-account">Account</button>
+    </nav>
+
+    <script src="app.js"></script>
+</body>
 </html>
+```
+
+Now, let's create a basic CSS file (styles.css):
+
+```css
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f0f2f5;
+}
+
+#app {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.page {
+    background-color: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 60px;
+}
+
+input, button {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+button {
+    background-color: #0088cc;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+#pdf-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.pdf-item {
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 10px;
+    text-align: center;
+}
+
+nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: white;
+    display: flex;
+    justify-content: space-around;
+    padding: 10px;
+    box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+}
+
+nav button {
+    background-color: transparent;
+    color: #0088cc;
+    border: none;
+}
+```
+
+Finally, let's create a JavaScript file (app.js) to handle the basic functionality:
+
+```javascript
+// Initialize Telegram WebApp
+const tg = window.Telegram.WebApp;
+
+// Sample PDF data (replace with actual data from your backend)
+const pdfs = [
+    { id: 1, title: 'Sample PDF 1', author: 'Author 1', price: 10, description: 'Description 1' },
+    { id: 2, title: 'Sample PDF 2', author: 'Author 2', price: 15, description: 'Description 2' },
+    // Add more PDFs here
+];
+
+// Current page state
+let currentPage = 'home';
+
+// Cart items
+let cart = [];
+
+// Function to switch between pages
+function showPage(pageId) {
+    document.querySelectorAll('.page').forEach(page => page.style.display = 'none');
+    document.getElementById(pageId).style.display = 'block';
+    currentPage = pageId;
+}
+
+// Function to render PDF grid
+function renderPDFGrid() {
+    const grid = document.getElementById('pdf-grid');
+    grid.innerHTML = '';
+    pdfs.forEach(pdf => {
+        const pdfElement = document.createElement('div');
+        pdfElement.className = 'pdf-item';
+        pdfElement.innerHTML = `
+            <h3>${pdf.title}</h3>
+            <p>${pdf.author}</p>
+            <p>${pdf.price} TON</p>
+            <button onclick="showPDFDetails(${pdf.id})">View Details</button>
+        `;
+        grid.appendChild(pdfElement);
+    });
+}
+
+// Function to show PDF details
+function showPDFDetails(pdfId) {
+    const pdf = pdfs.find(p => p.id === pdfId);
+    document.getElementById('pdf-thumbnail').src = `path/to/${pdf.id}-thumbnail.jpg`;
+    document.getElementById('pdf-title').textContent = pdf.title;
+    document.getElementById('pdf-author').textContent = pdf.author;
+    document.getElementById('pdf-description').textContent = pdf.description;
+    document.getElementById('pdf-price').textContent = `${pdf.price} TON`;
+    document.getElementById('buy-button').onclick = () => addToCart(pdf);
+    showPage('pdf-details');
+}
+
+// Function to add PDF to cart
+function addToCart(pdf) {
+    cart.push(pdf);
+    updateCart();
+    showPage('cart');
+}
+
+// Function to update cart
+function updateCart() {
+    const cartItems = document.getElementById('cart-items');
+    const cartTotal = document.getElementById('cart-total');
+    cartItems.innerHTML = '';
+    let total = 0;
+    cart.forEach(pdf => {
+        const li = document.createElement('li');
+        li.textContent = `${pdf.title} - ${pdf.price} TON`;
+        cartItems.appendChild(li);
+        total += pdf.price;
+    });
+    cartTotal.textContent = total;
+    document.getElementById('payment-total').textContent = total;
+}
+
+// Function to simulate TON wallet connection
+function connectWallet() {
+    // In a real app, you would integrate with TON Connect here
+    alert('Connecting to TON wallet...');
+    document.getElementById('connect-wallet').style.display = 'none';
+    document.getElementById('confirm-payment').style.display = 'block';
+}
+
+// Function to simulate payment confirmation
+function confirmPayment() {
+    // In a real app, you would handle the actual payment here
+    alert('Payment confirmed! Generating download links...');
+    cart.forEach(pdf => {
+        const li = document.createElement('li');
+        li.innerHTML = `<a href="#" onclick="alert('Downloading ${pdf.title}...')">Download ${pdf.title}</a>`;
+        document.getElementById('purchased-pdfs').appendChild(li);
+    });
+    cart = [];
+    updateCart();
+    showPage('account');
+}
+
+// Event listeners
+document.getElementById('nav-home').addEventListener('click', () => showPage('home'));
+document.getElementById('nav-cart').addEventListener('click', () => showPage('cart'));
+document.getElementById('nav-account').addEventListener('click', () => showPage('account'));
+document.getElementById('checkout-button').addEventListener('click', () => showPage('payment'));
+document.getElementById('connect-wallet').addEventListener('click', connectWallet);
+document.getElementById('confirm-payment').addEventListener('click', confirmPayment);
+
+// Initialize the app
+renderPDFGrid();
+showPage('home');
+
+// Set Telegram WebApp ready
+tg.ready();
