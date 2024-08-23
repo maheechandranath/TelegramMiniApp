@@ -1,6 +1,9 @@
 // Initialize Telegram WebApp
 const tg = window.Telegram.WebApp;
 
+// Initialize TON Connect
+const tonConnect = new TONConnect();
+
 // Sample PDF data (replace with actual data from your backend)
 const pdfs = [
     { id: 1, title: 'Sample PDF 1', author: 'Author 1', price: 10, description: 'Description 1' },
@@ -46,66 +49,82 @@ function showPDFDetails(pdfId) {
     document.getElementById('pdf-author').textContent = pdf.author;
     document.getElementById('pdf-description').textContent = pdf.description;
     document.getElementById('pdf-price').textContent = `${pdf.price} TON`;
-    document.getElementById('buy-button').onclick = () => addToCart(pdf);
+    document.getElementById('buy-button').onclick = () => buyPDF(pdf);
     showPage('pdf-details');
 }
 
-// Function to add PDF to cart
-function addToCart(pdf) {
-    cart.push(pdf);
-    updateCart();
-    showPage('cart');
+// Function to buy PDF
+async function buyPDF(pdf) {
+    if (!tonConnect.connected) {
+        await connectWallet();
+    }
+    
+    if (tonConnect.connected) {
+        const transaction = {
+            validUntil: Math.floor(Date.now() / 1000) + 60 * 20, // Valid for 20 minutes
+            messages: [
+                {
+                    address: 'YOUR_STORE_WALLET_ADDRESS',
+                    amount: (pdf.price * 1000000000).toString(), // Convert TON to nanoTON
+                    payload: `Buy PDF: ${pdf.id}`,
+                }
+            ]
+        };
+
+        try {
+            const result = await tonConnect.sendTransaction(transaction);
+            console.log('Transaction sent:', result);
+            alert(`Payment for "${pdf.title}" is being processed. You'll receive your download link shortly.`);
+            // Here you would typically notify your backend about the transaction
+            // and generate a download link for the user
+        } catch (error) {
+            console.error('Transaction failed:', error);
+            alert('Payment failed. Please try again.');
+        }
+    } else {
+        alert('Please connect your wallet to make a purchase.');
+    }
 }
 
-// Function to update cart
-function updateCart() {
-    const cartItems = document.getElementById('cart-items');
-    const cartTotal = document.getElementById('cart-total');
-    cartItems.innerHTML = '';
-    let total = 0;
-    cart.forEach(pdf => {
-        const li = document.createElement('li');
-        li.textContent = `${pdf.title} - ${pdf.price} TON`;
-        cartItems.appendChild(li);
-        total += pdf.price;
-    });
-    cartTotal.textContent = total;
-    document.getElementById('payment-total').textContent = total;
+// Function to connect TON wallet
+async function connectWallet() {
+    try {
+        const walletConnectionSource = {
+            jsBridgeKey: 'tonkeeper'
+        };
+        await tonConnect.connect(walletConnectionSource);
+        updateWalletButton();
+    } catch (error) {
+        console.error('Failed to connect wallet:', error);
+        alert('Failed to connect wallet. Please try again.');
+    }
 }
 
-// Function to simulate TON wallet connection
-function connectWallet() {
-    // In a real app, you would integrate with TON Connect here
-    alert('Connecting to TON wallet...');
-    document.getElementById('connect-wallet').style.display = 'none';
-    document.getElementById('confirm-payment').style.display = 'block';
-}
-
-// Function to simulate payment confirmation
-function confirmPayment() {
-    // In a real app, you would handle the actual payment here
-    alert('Payment confirmed! Generating download links...');
-    cart.forEach(pdf => {
-        const li = document.createElement('li');
-        li.innerHTML = `<a href="#" onclick="alert('Downloading ${pdf.title}...')">Download ${pdf.title}</a>`;
-        document.getElementById('purchased-pdfs').appendChild(li);
-    });
-    cart = [];
-    updateCart();
-    showPage('account');
+// Function to update wallet connection button
+function updateWalletButton() {
+    const walletButton = document.getElementById('connect-wallet');
+    if (tonConnect.connected) {
+        walletButton.textContent = 'Wallet Connected';
+        walletButton.disabled = true;
+    } else {
+        walletButton.textContent = 'Connect TON Wallet';
+        walletButton.disabled = false;
+    }
 }
 
 // Event listeners
 document.getElementById('nav-home').addEventListener('click', () => showPage('home'));
 document.getElementById('nav-cart').addEventListener('click', () => showPage('cart'));
 document.getElementById('nav-account').addEventListener('click', () => showPage('account'));
-document.getElementById('checkout-button').addEventListener('click', () => showPage('payment'));
 document.getElementById('connect-wallet').addEventListener('click', connectWallet);
-document.getElementById('confirm-payment').addEventListener('click', confirmPayment);
 
 // Initialize the app
 renderPDFGrid();
 showPage('home');
+updateWalletButton();
 
 // Set Telegram WebApp ready
 tg.ready();
+
+// Listen for wallet connection changes
+tonConnect.onStatusChange(updateWalletButton);
