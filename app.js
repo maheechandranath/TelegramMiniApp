@@ -4,18 +4,17 @@ const tg = window.Telegram.WebApp;
 // Initialize TON Connect
 const tonConnect = new TONConnect();
 
-// Sample PDF data (replace with actual data from your backend)
-const pdfs = [
-    { id: 1, title: 'Sample PDF 1', author: 'Author 1', price: 10, description: 'Description 1' },
-    { id: 2, title: 'Sample PDF 2', author: 'Author 2', price: 15, description: 'Description 2' },
+// Mock database for PDF links
+const pdfDatabase = [
+    { id: 1, title: 'Introduction to JavaScript', author: 'John Doe', price: 10, description: 'Learn the basics of JavaScript programming.', link: 'https://example.com/js-intro.pdf' },
+    { id: 2, title: 'Advanced Python Techniques', author: 'Jane Smith', price: 15, description: 'Master advanced Python programming concepts.', link: 'https://example.com/adv-python.pdf' },
+    { id: 3, title: 'Web Design Fundamentals', author: 'Alice Johnson', price: 12, description: 'Understand the core principles of web design.', link: 'https://example.com/web-design.pdf' },
     // Add more PDFs here
 ];
 
-// Current page state
 let currentPage = 'home';
-
-// Cart items
 let cart = [];
+let searchTimeout;
 
 // Function to switch between pages
 function showPage(pageId) {
@@ -25,7 +24,7 @@ function showPage(pageId) {
 }
 
 // Function to render PDF grid
-function renderPDFGrid() {
+function renderPDFGrid(pdfs = pdfDatabase) {
     const grid = document.getElementById('pdf-grid');
     grid.innerHTML = '';
     pdfs.forEach(pdf => {
@@ -43,14 +42,38 @@ function renderPDFGrid() {
 
 // Function to show PDF details
 function showPDFDetails(pdfId) {
-    const pdf = pdfs.find(p => p.id === pdfId);
-    document.getElementById('pdf-thumbnail').src = `path/to/${pdf.id}-thumbnail.jpg`;
+    const pdf = pdfDatabase.find(p => p.id === pdfId);
+    document.getElementById('pdf-thumbnail').src = `https://via.placeholder.com/150?text=${encodeURIComponent(pdf.title)}`;
     document.getElementById('pdf-title').textContent = pdf.title;
     document.getElementById('pdf-author').textContent = pdf.author;
     document.getElementById('pdf-description').textContent = pdf.description;
     document.getElementById('pdf-price').textContent = `${pdf.price} TON`;
-    document.getElementById('buy-button').onclick = () => buyPDF(pdf);
+    document.getElementById('add-to-cart').onclick = () => addToCart(pdf);
+    document.getElementById('buy-now').onclick = () => buyPDF(pdf);
     showPage('pdf-details');
+}
+
+// Function to add PDF to cart
+function addToCart(pdf) {
+    cart.push(pdf);
+    updateCart();
+    showToast(`Added "${pdf.title}" to cart`);
+}
+
+// Function to update cart
+function updateCart() {
+    const cartItems = document.getElementById('cart-items');
+    const cartTotal = document.getElementById('cart-total');
+    cartItems.innerHTML = '';
+    let total = 0;
+    cart.forEach(pdf => {
+        const li = document.createElement('li');
+        li.textContent = `${pdf.title} - ${pdf.price} TON`;
+        cartItems.appendChild(li);
+        total += pdf.price;
+    });
+    cartTotal.textContent = total;
+    document.getElementById('nav-cart').textContent = `Cart (${cart.length})`;
 }
 
 // Function to buy PDF
@@ -74,15 +97,19 @@ async function buyPDF(pdf) {
         try {
             const result = await tonConnect.sendTransaction(transaction);
             console.log('Transaction sent:', result);
-            alert(`Payment for "${pdf.title}" is being processed. You'll receive your download link shortly.`);
+            showToast(`Payment for "${pdf.title}" is being processed. You'll receive your download link shortly.`);
             // Here you would typically notify your backend about the transaction
             // and generate a download link for the user
+            setTimeout(() => {
+                // Simulate backend processing
+                showToast(`Download link for "${pdf.title}": ${pdf.link}`);
+            }, 3000);
         } catch (error) {
             console.error('Transaction failed:', error);
-            alert('Payment failed. Please try again.');
+            showToast('Payment failed. Please try again.');
         }
     } else {
-        alert('Please connect your wallet to make a purchase.');
+        showToast('Please connect your wallet to make a purchase.');
     }
 }
 
@@ -96,7 +123,7 @@ async function connectWallet() {
         updateWalletButton();
     } catch (error) {
         console.error('Failed to connect wallet:', error);
-        alert('Failed to connect wallet. Please try again.');
+        showToast('Failed to connect wallet. Please try again.');
     }
 }
 
@@ -107,16 +134,44 @@ function updateWalletButton() {
         walletButton.textContent = 'Wallet Connected';
         walletButton.disabled = true;
     } else {
-        walletButton.textContent = 'Connect TON Wallet';
+        walletButton.textContent = 'Connect Wallet';
         walletButton.disabled = false;
     }
+}
+
+// Function to show toast message
+function showToast(message) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.classList.add('show');
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3000);
+}
+
+// Function to handle search
+function handleSearch() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        const searchTerm = document.getElementById('search').value.toLowerCase();
+        const filteredPDFs = pdfDatabase.filter(pdf =>
+            pdf.title.toLowerCase().includes(searchTerm) ||
+            pdf.author.toLowerCase().includes(searchTerm) ||
+            pdf.description.toLowerCase().includes(searchTerm)
+        );
+        renderPDFGrid(filteredPDFs);
+    }, 300);
 }
 
 // Event listeners
 document.getElementById('nav-home').addEventListener('click', () => showPage('home'));
 document.getElementById('nav-cart').addEventListener('click', () => showPage('cart'));
-document.getElementById('nav-account').addEventListener('click', () => showPage('account'));
 document.getElementById('connect-wallet').addEventListener('click', connectWallet);
+document.getElementById('checkout').addEventListener('click', () => {
+    // Implement checkout logic here
+    showToast('Checkout not implemented in this demo');
+});
+document.getElementById('search').addEventListener('input', handleSearch);
 
 // Initialize the app
 renderPDFGrid();
